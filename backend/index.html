@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat app</title>
+    <style>
+        body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  
+        #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; }
+        #input, #room { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+        #input:focus, #room:focus { outline: none; }
+        #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+  
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages > li { padding: 0.5rem 1rem; }
+        #messages > li:nth-child(odd) { background: #efefef; }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+          }
+      </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="room" autocomplete="off" placeholder="Room Name" />
+    <button type="button" id="joinRoomButton">Join Room</button>
+      <label for="input" class="sr-only">Text</label>
+      <input id="input" autocomplete="off" placeholder="Enter text here" aria-label="Accessible Label"/><button type="submit">Send</button>
+    </form>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  let currentRoom  = null;
+
+  const form = document.getElementById('form');
+  const input = document.getElementById('input');
+  const room = document.getElementById('room');
+  const joinRoomButton = document.getElementById('joinRoomButton');
+  const messages = document.getElementById('messages');
+
+  joinRoomButton.addEventListener('click',(e) => {
+    const roomName = room.value.trim();
+    if (roomName) {
+      socket.emit('joinRoom', roomName);
+      currentRoom = roomName
+      console.log(`Joining room: ${roomName}`);
+      room.value = ''
+    }
+  })
+
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const message = input.value.trim();
+    if (message && currentRoom) {
+      socket.emit('chat message', {room: currentRoom, message});
+      input.value = '';
+    }
+  });
+
+
+  socket.on('chat message', (msg) => {
+    const item = document.createElement('li');
+    item.textContent = msg;
+    messages.appendChild(item);
+    window.scrollTo(0, document.body.scrollHeight);
+  });
+
+  socket.on('joinedRoom',(message) => {
+    const item = document.createElement('li');
+    item.textContent = message;
+    messages.appendChild(item);
+  })
+</script>
+</body>
+</html>
