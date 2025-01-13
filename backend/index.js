@@ -12,6 +12,8 @@ const io = new Server(server, {
   },
 });
 
+const users = {}
+
 // Serve React's build files
 app.use(express.static(join(__dirname, "dist")));
 
@@ -24,23 +26,26 @@ io.on("connection", (socket) => {
 
   socket.on("joinRoom", (roomName) => {
     socket.join(roomName);
+    users[socket.id] = roomName
     console.log(`${socket.id} joined room: ${roomName}`);
-    socket.emit("joinedRoom", `You joined the room: ${roomName}`);
+    io.to(roomName).emit("joinedRoom", `${socket.id} joined the room ${roomName}`);
   });
 
 
 // Handle client messages
   socket.on("chat message", ({ room, message }) => {
     console.log(room,message)
+    const sender = socket.id
     if (room) {
       console.log(`Message to room ${room}: ${message}`);
-      io.to(room).emit("chat message", message); // Broadcast only to the specified room
+      io.to(room).emit("chat message",{ sender,message}); // Broadcast only to the specified room
     }
   });
 
   // Handle client disconnect
   socket.on("disconnect", () => {
     console.log("user disconnected");
+    // delete users[socket.id]
   });
 });
 

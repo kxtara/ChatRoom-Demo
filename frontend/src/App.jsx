@@ -10,13 +10,13 @@ function App() {
 
   useEffect(() => {
     // Listen for chat messages
-    socket.on("chat message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    socket.on("chat message", ({sender,message}) => {
+      setMessages((prev) => [...prev, {sender,message}]);
     });
 
     // Listen for room join confirmation
     socket.on("joinedRoom", (message) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => [...prev, {sender: "system",message}]);
     });
 
     return () => {
@@ -24,6 +24,13 @@ function App() {
       socket.off("joinedRoom");
     };
   }, []);
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected with ID:", socket.id);
+    });
+  }, []);
+  
 
   const handleJoinRoom = () => {
     console.log("Frontend:",room)
@@ -58,13 +65,29 @@ function App() {
         </button>
       </div>
       <div className="flex-grow bg-white p-4 rounded shadow">
-        <ul className="space-y-2">
-          {messages.map((msg, index) => (
-            <li key={index} className="p-2 bg-gray-200 rounded">
-              {msg}
-            </li>
-          ))}
-        </ul>
+      <ul className="space-y-2">
+  {messages.map((msg, index) => (
+    <li
+      key={index}
+      className={`p-2 rounded ${
+        msg.sender === socket.id
+          ? "bg-blue-200 text-right"
+          : msg.sender === "system"
+          ? "bg-gray-300 text-center"
+          : "bg-green-200 text-left"
+      }`}
+    >
+      {msg.sender === "system" ? (
+        <span>{msg.message}</span>
+      ) : (
+        <span>
+          {msg.sender === socket.id ? " " : `${msg.sender.slice(0,3)}: `}
+          {msg.message}
+        </span>
+      )}
+    </li>
+  ))}
+</ul>
       </div>
       <div className="mt-4">
         <input
