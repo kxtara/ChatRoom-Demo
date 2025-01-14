@@ -30,7 +30,9 @@ function App() {
       console.log("Connected with ID:", socket.id);
     });
   }, []);
-  
+  useEffect(() => {
+    console.log(messages)
+  }, [input,username]);
 
   const handleJoinRoom = () => {
     console.log("Frontend:",room)
@@ -50,7 +52,8 @@ function App() {
   return (
       <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
       <div className="mb-4">
-        <input
+        <label>
+          <input
           type="text"
           className="p-2 border rounded mr-2"
           placeholder="Enter room name"
@@ -63,6 +66,7 @@ function App() {
         >
           Join Room
         </button>
+        </label>
       </div>
       <div className="flex-grow bg-white p-4 rounded shadow">
       <ul className="space-y-2">
