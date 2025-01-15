@@ -2,6 +2,8 @@ const express = require("express");
 const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const { join } = require("node:path");
+const { anonymousNames } = require("./constants");
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -12,7 +14,7 @@ const io = new Server(server, {
   },
 });
 
-const users = {}
+const users = {};
 
 // Serve React's build files
 app.use(express.static(join(__dirname, "dist")));
@@ -22,30 +24,36 @@ app.get("*", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("a user connected", socket.id);
+  const random = Math.floor(Math.random() * anonymousNames.length + 1);
+  let username = anonymousNames[random];
 
   socket.on("joinRoom", (roomName) => {
     socket.join(roomName);
-    users[socket.id] = roomName
-    console.log(`${socket.id} joined room: ${roomName}`);
-    io.to(roomName).emit("joinedRoom", `${socket.id} joined the room ${roomName}`);
+    users[socket.id] = { roomName, username };
+    io.to(roomName).emit(
+      "joinedRoom",
+      `${username} joined the room ${roomName}`,
+      username
+    );
   });
 
-
-// Handle client messages
+  // Handle client messages
   socket.on("chat message", ({ room, message }) => {
-    console.log(room,message)
-    const sender = socket.id
-    if (room) {
-      console.log(`Message to room ${room}: ${message}`);
-      io.to(room).emit("chat message",{ sender,message}); // Broadcast only to the specified room
+    const senderInfo = users[socket.id]; // Retrieve the user's info
+    if (senderInfo) {
+      const { username } = senderInfo;
+      io.to(room).emit("chat message", {
+        sender: socket.id,
+        message,
+        user: username,
+      });
     }
   });
 
   // Handle client disconnect
   socket.on("disconnect", () => {
     console.log("user disconnected");
-    // delete users[socket.id]
+    delete users[socket.id];
   });
 });
 
