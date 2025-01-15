@@ -10,13 +10,13 @@ function App() {
 
   useEffect(() => {
     // Listen for chat messages
-    socket.on("chat message", ({sender,message}) => {
-      setMessages((prev) => [...prev, {sender,message}]);
+    socket.on("chat message", ({ sender, message, user }) => {
+      setMessages((prev) => [...prev, { sender, message, user }]);
     });
 
     // Listen for room join confirmation
     socket.on("joinedRoom", (message) => {
-      setMessages((prev) => [...prev, {sender: "system",message}]);
+      setMessages((prev) => [...prev, { sender: "system", message }]);
     });
 
     return () => {
@@ -30,68 +30,61 @@ function App() {
       console.log("Connected with ID:", socket.id);
     });
   }, []);
-  useEffect(() => {
-    console.log(messages)
-  }, [input,username]);
 
   const handleJoinRoom = () => {
-    console.log("Frontend:",room)
-    if (room.trim()) {
-      socket.emit("joinRoom", room);
-      console.log(`Joining room: ${room}`);
-    }
+    if (room.trim()) socket.emit("joinRoom", room);
   };
 
   const handleSendMessage = () => {
     if (input.trim()) {
       socket.emit("chat message", { room, message: input });
-      setInput(""); // Clear message input
+      setInput("");
     }
   };
 
   return (
-      <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
+    <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
       <div className="mb-4">
         <label>
           <input
-          type="text"
-          className="p-2 border rounded mr-2"
-          placeholder="Enter room name"
-          value={room}
-          onChange={(e) => setRoom(e.target.value)}
-        />
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={handleJoinRoom}
-        >
-          Join Room
-        </button>
+            type="text"
+            className="p-2 border rounded mr-2"
+            placeholder="Enter room name"
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          />
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={handleJoinRoom}
+          >
+            Join Room
+          </button>
         </label>
       </div>
       <div className="flex-grow bg-white p-4 rounded shadow">
-      <ul className="space-y-2">
-  {messages.map((msg, index) => (
-    <li
-      key={index}
-      className={`p-2 rounded ${
-        msg.sender === socket.id
-          ? "bg-blue-200 text-right"
-          : msg.sender === "system"
-          ? "bg-gray-300 text-center"
-          : "bg-green-200 text-left"
-      }`}
-    >
-      {msg.sender === "system" ? (
-        <span>{msg.message}</span>
-      ) : (
-        <span>
-          {msg.sender === socket.id ? " " : `${msg.sender.slice(0,3)}: `}
-          {msg.message}
-        </span>
-      )}
-    </li>
-  ))}
-</ul>
+        <ul className="space-y-2">
+          {messages.map((msg, index) => (
+            <li
+              key={index}
+              className={`p-2 rounded ${
+                msg.sender === socket.id
+                  ? "bg-blue-200 text-right"
+                  : msg.sender === "system"
+                  ? "bg-gray-300 text-center"
+                  : "bg-green-200 text-left"
+              }`}
+            >
+              {msg.sender === "system" ? (
+                <span>{msg.message}</span>
+              ) : (
+                <span>
+                  {msg.sender === socket.id ? " " : `${msg.user}: `}
+                  {msg.message}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="mt-4">
         <input
