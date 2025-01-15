@@ -24,8 +24,10 @@ app.get("*", (req, res) => {
 });
 
 io.on("connection", (socket) => {
+
   const random = Math.floor(Math.random() * anonymousNames.length + 1);
   let username = anonymousNames[random];
+  console.log(`${username} connected`)
 
   socket.on("joinRoom", (roomName) => {
     socket.join(roomName);
@@ -35,6 +37,21 @@ io.on("connection", (socket) => {
       `${username} joined the room ${roomName}`,
       username
     );
+  });
+
+  // Handle typing events
+  socket.on("typing", (roomName) => {
+    const senderInfo = users[socket.id];
+    if (senderInfo) {
+      io.to(roomName).emit("userTyping", { username: senderInfo.username });
+    }
+  });
+
+  socket.on("stopTyping", (roomName) => {
+    const senderInfo = users[socket.id];
+    if (senderInfo) {
+      io.to(roomName).emit("userStoppedTyping", { username: senderInfo.username });
+    }
   });
 
   // Handle client messages
