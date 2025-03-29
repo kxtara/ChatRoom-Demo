@@ -7,9 +7,11 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [room, setRoom] = useState("");
+  const [prevRoom,setPrevRoom] = useState("")
   const [typingUsers, setTypingUsers] = useState([]);
+  const [disableRoomBtn,setDisableRoomBtn] = useState(true)
   let typingTimeout;
-
+  
   useEffect(() => {
     socket.on("chat message", ({ sender, message, user }) => {
       setMessages((prev) => [...prev, { sender, message, user }]);
@@ -30,21 +32,27 @@ function App() {
       setTypingUsers((prev) => prev.filter((user) => user !== username));
     });
 
+    socket.on("disconnected", (message) => {
+      setMessages((prev) => [...prev, { sender: "system", message }]);
+    });
+
     return () => {
       socket.off("chat message");
       socket.off("joinedRoom");
       socket.off("userTyping");
       socket.off("userStoppedTyping");
+      socket.off("disconnected")
     };
   }, [typingUsers]);
 
   const handleJoinRoom = () => {
+    setMessages([])
     if (room.trim()) socket.emit("joinRoom", room);
+    setPrevRoom(room)
   };
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
-
     // Emit typing event
     if (room) {
       socket.emit("typing", room);
@@ -58,12 +66,28 @@ function App() {
   };
 
   const handleSendMessage = () => {
+    console.log("handleMessage",input)
     if (input.trim()) {
-      socket.emit("chat message", { room, message: input });
+      socket.emit("chat message", { room, message : input });
       setInput("");
       socket.emit("stopTyping", room); // Stop typing after sending
     }
   };
+
+  const handleRoomInput = (e) => {
+    const val = e.target.value
+    setRoom(val)
+  }
+
+  useEffect(() => {
+    if (!room) {
+      setDisableRoomBtn(true);
+    } else if (room === prevRoom) {
+      setDisableRoomBtn(true);
+    } else {
+      setDisableRoomBtn(false);
+    }
+  }, [room, prevRoom]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
@@ -74,11 +98,12 @@ function App() {
             className="p-2 border rounded mr-2"
             placeholder="Enter room name"
             value={room}
-            onChange={(e) => setRoom(e.target.value)}
+            onChange={handleRoomInput}
           />
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+            className={`${disableRoomBtn ? "bg-blue-300" : "bg-blue-500"}  text-white px-4 py-2 rounded cursor-pointer`}
             onClick={handleJoinRoom}
+            disabled={disableRoomBtn}
           >
             Join Room
           </button>
@@ -86,7 +111,8 @@ function App() {
       </div>
       <div className="flex-grow bg-white p-4 rounded shadow">
         <ul className="space-y-2">
-          {messages.map((msg, index) => (
+          {messages.map((msg, index) => {
+            return(
             <li
               key={index}
               className={`p-2 rounded ${
@@ -105,8 +131,8 @@ function App() {
                   {msg.message}
                 </span>
               )}
-            </li>
-          ))}
+            </li>);
+          })}
         </ul>
         <div className="text-sm text-gray-500 mt-2">
           {typingUsers.length > 0 && (
